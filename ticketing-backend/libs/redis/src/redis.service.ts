@@ -30,6 +30,6 @@ export class RedisService implements OnModuleInit {
   async subscribe(channel: string, callback: (message: string) => void) {
     const subscriber = this.client.duplicate(); // 독립된 Redis 연결 생성 (Pub/Sub 전용)
     await subscriber.connect();
-    await subscriber.subscribe(channel, (message) => callback(message));
+    await subscriber.subscribe(channel, (message: any) => callback(message));
   }
 }

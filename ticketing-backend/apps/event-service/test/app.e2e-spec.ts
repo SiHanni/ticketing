@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { EventServiceModule } from './../src/event-service.module';
+import { EventServiceModule } from '../src/app.module';
 
 describe('EventServiceController (e2e)', () => {
   let app: INestApplication;

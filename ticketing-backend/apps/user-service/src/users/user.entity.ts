@@ -1,4 +1,3 @@
-// src/users/user.entity.ts
 import {
   Entity,
   Column,
@@ -6,6 +5,10 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 
+export enum UserRole {
+  Admin = 'admin',
+  User = 'user',
+}
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('increment')
@@ -15,13 +18,20 @@ export class User {
   email: string;
 
   @Column()
-  hashedPassword: string;
+  password: string;
 
   @Column({ nullable: true })
   name: string;
 
   @Column({ nullable: true })
   phone: string;
+
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.User,
+  })
+  role: UserRole;
 
   @CreateDateColumn()
   createdAt: Date;

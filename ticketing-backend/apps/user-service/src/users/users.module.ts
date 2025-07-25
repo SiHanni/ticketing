@@ -6,6 +6,6 @@ import { UsersService } from './users.service';
 @Module({
   imports: [TypeOrmModule.forFeature([User])],
   providers: [UsersService],
-  exports: [UsersService], // auth.module 등에서 사용 가능하도록
+  exports: [UsersService],
 })
 export class UsersModule {}

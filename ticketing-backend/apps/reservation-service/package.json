@@ -1,0 +1,9 @@
+{
+  "name": "reservation-service",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "nest build",
+    "start": "node ../../dist/apps/reservation-service/apps/reservation-service/src/main.js",
+    "start:dev": "nest start --watch"
+  }
+}

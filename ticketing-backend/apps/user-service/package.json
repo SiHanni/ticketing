@@ -1,0 +1,9 @@
+{
+  "name": "user-service",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "nest build",
+    "start": "node ../../dist/apps/user-service/main",
+    "start:dev": "nest start --watch"
+  }
+}

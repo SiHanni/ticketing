@@ -1,0 +1,9 @@
+{
+  "name": "event-service",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "nest build",
+    "start": "node ../../dist/apps/event-service/main",
+    "start:dev": "nest start --watch"
+  }
+}

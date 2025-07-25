@@ -1,0 +1,9 @@
+{
+  "name": "payment-service",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node ../../dist/apps/payment-service/apps/payment-service/src/main.js",
+    "start:dev": "nest start --watch",
+    "build": "nest build"
+  }
+}

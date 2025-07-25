@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../dist/apps/payment-service",
+    "rootDir": "../../", // 루트로 설정하여 libs도 포함되게 함
+    "baseUrl": "../../" // 루트 기준으로 libs 경로를 맞춤
+  },
+  "include": ["src/**/*", "../../libs/**/*"]
+}

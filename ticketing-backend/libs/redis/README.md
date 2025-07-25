@@ -56,3 +56,28 @@ Redis는 하나의 연결에서 `subscribe()`를 호출하면 그 클라이언�
 duplicate()는 Redis에서 **Pub/Sub과 일반 명령어(get/set 등)**을 분리된 연결에서 동시에 사용하기 위해 필요하기 때문인데, Redis는 한 클라이언트가 subscribe()를 호출하면 Pub/Sub 전용 모드로 들어가고 이때 get, set, publish 등의 명령어를 사용하지 못하므로 별도의 클라이언트를 생성하는 것입니다.
 
 ---
+
+## Redis 설정 변경 (notify-keyspace-events)
+
+notify-keyspace-events는 Redis의 Pub/Sub 기반 Keyspace Notification을 활성화하는 설정입니다.
+
+Ex는 다음을 의미합니다:
+
+E: Keyevent notifications (이벤트 기반, expired 등)
+
+x: 만료 이벤트 (expired)를 구독
+
+Keyspace Notifications가 동작하려면 Redis 설정에서 다음 항목이 필요합니다
+
+```
+notify-keyspace-events Ex
+
+```
+
+로컬 redis에서는
+
+```
+redis-cli config set notify-keyspace-events Ex
+```
+
+배포 시에는 새로 도커 컴포즈 작성을 하는 것이 좋아보입니다.

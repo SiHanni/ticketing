@@ -21,7 +21,7 @@ export class AuthService {
       );
     }
 
-    const isMatch = await bcrypt.compare(password, user.hashedPassword);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       throw new UnauthorizedException(
         '이메일 또는 비밀번호가 올바르지 않습니다',

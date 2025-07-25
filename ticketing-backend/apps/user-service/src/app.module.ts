@@ -4,19 +4,22 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './users/user.entity';
-
+//import { ConfigService } from '@nestjs/config';
+import * as path from 'path';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // 모든 모듈에서 사용할 수 있도록
+      isGlobal: true,
+      envFilePath: path.resolve(__dirname, `../.env`),
     }),
+
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: 'localhost',
       port: 3307,
       username: 'root',
       password: '4581',
-      database: 'ticketing',
+      database: 'user_service',
       entities: [User],
       synchronize: true,
     }),

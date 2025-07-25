@@ -1,8 +1,14 @@
-import { Module } from '@nestjs/common';
-import { RedisService } from './redis.service';
+import { Module, Global } from '@nestjs/common';
+import { RedisModule as IORedisModule } from '@nestjs-modules/ioredis';
 
+@Global()
 @Module({
-  providers: [RedisService],
-  exports: [RedisService],
+  imports: [
+    IORedisModule.forRoot({
+      type: 'single',
+      url: 'redis://localhost:6379',
+    }),
+  ],
+  exports: [IORedisModule],
 })
 export class RedisModule {}

@@ -1,10 +1,13 @@
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  console.log('__dirname:', __dirname);
   const config = new DocumentBuilder()
     .setTitle('User Service')
     .setDescription('User registration and authentication API')
@@ -13,8 +16,10 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api-docs', app, document);
+  SwaggerModule.setup('user-api-docs', app, document);
 
-  await app.listen(process.env.port ?? 3004);
+  await app.startAllMicroservices();
+
+  await app.listen(process.env.PORT ?? 3004);
 }
 bootstrap();

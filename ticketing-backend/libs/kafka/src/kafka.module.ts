@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { KafkaService } from './kafka.service';
 
 @Module({
+  providers: [KafkaService],
   imports: [
     ClientsModule.register([
       {
@@ -13,13 +15,13 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
             brokers: ['localhost:10001', 'localhost:10002', 'localhost:10003'],
           },
           consumer: {
-            groupId: 'ticketing-consumer-group', // 각 서비스에서 override 가능
+            groupId: 'ticketing-consumer-group', // 서비스마다 override 가능
             allowAutoTopicCreation: true,
           },
         },
       },
     ]),
   ],
-  exports: [ClientsModule],
+  exports: [ClientsModule, KafkaService],
 })
 export class KafkaModule {}
