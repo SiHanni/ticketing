@@ -1,10 +1,10 @@
-// apps/event-service/src/events/dto/create-event.dto.ts
 import {
   IsString,
   IsDateString,
   IsOptional,
   IsUrl,
   IsUUID,
+  IsNumber,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -40,4 +40,8 @@ export class CreateEventDto {
   @ApiProperty({ example: '1c0e1c99-16a4-4f6e-bc8b-7dc42f81650c' })
   @IsUUID()
   venueId: string;
+
+  @ApiProperty({ example: '1' })
+  @IsNumber()
+  adminId: number;
 }

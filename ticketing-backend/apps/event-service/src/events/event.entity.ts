@@ -1,4 +1,3 @@
-// apps/event-service/src/events/event.entity.ts
 import {
   Entity,
   Column,
@@ -40,4 +39,7 @@ export class Event {
 
   @Column()
   venueId: string; // 공연장 UUID
+
+  @Column()
+  adminId: number;
 }
