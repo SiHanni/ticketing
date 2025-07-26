@@ -44,6 +44,7 @@
     "typeorm": "^0.3.25"
   },
   "devDependencies": {
+    "@nestjs/axios": "^4.0.1",
     "@types/bcrypt": "^6.0.0",
     "@types/node": "^20.9.0",
     "@types/passport-jwt": "^3.0.6",

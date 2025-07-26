@@ -11,40 +11,62 @@ export class SeatLockService {
 
   constructor(@InjectRedis() private readonly redis: Redis) {}
 
-  async tryLock(seatId: string): Promise<string | null> {
-    const lockKey = `seat:locked:${seatId}`;
-    const ttl = await this.redis.ttl(lockKey);
-    this.logger.debug(`🔐 락 설정됨: ${lockKey}, TTL=${ttl}s`);
+  async tryLock(
+    lockKey: string,
+    ttl = SEAT_LOCK_EXPIRE_SECONDS,
+  ): Promise<string | null> {
     const lockId = randomUUID();
 
-    const result = await this.redis.eval(
-      `
-      if redis.call("SETNX", KEYS[1], ARGV[1]) == 1 then
-        redis.call("EXPIRE", KEYS[1], ARGV[2])
-        return ARGV[1]
-      else
-        return nil
-      end
-    `,
-      1,
-      lockKey,
-      lockId,
-      SEAT_LOCK_EXPIRE_SECONDS,
-    );
+    try {
+      const result = await this.redis.eval(
+        `
+        if redis.call("SETNX", KEYS[1], ARGV[1]) == 1 then
+          redis.call("EXPIRE", KEYS[1], ARGV[2])
+          return ARGV[1]
+        else
+          return nil
+        end
+        `,
+        1,
+        `seat:locked:${lockKey}`,
+        lockId,
+        ttl,
+      );
+      this.logger.debug(`🔍 tryLock result:`, result); // 이거 추가!!
 
-    return result ? lockId : null;
+      if (result) {
+        this.logger.log(
+          `✅ 좌석 락 획득: seat:locked:${lockKey} | TTL: ${ttl}s`,
+        );
+        return lockId;
+      }
+
+      return null;
+    } catch (err) {
+      this.logger.error(`🚨 락 시도 실패: ${err}`);
+      return null;
+    }
   }
 
-  async unlock(seatId: string, lockId: string): Promise<boolean> {
-    const lockKey = `seat:locked:${seatId}`;
-    const currentLockId = await this.redis.get(lockKey);
+  async unlock(lockKey: string, lockId: string): Promise<boolean> {
+    try {
+      const result = await this.redis.eval(
+        `
+        if redis.call("GET", KEYS[1]) == ARGV[1] then
+          return redis.call("DEL", KEYS[1])
+        else
+          return 0
+        end
+        `,
+        1,
+        `seat:locked:${lockKey}`,
+        lockId,
+      );
 
-    if (currentLockId === lockId) {
-      await this.redis.del(lockKey);
-      return true;
+      return result === 1;
+    } catch (err) {
+      this.logger.error(`🚨 락 해제 실패: ${err}`);
+      return false;
     }
-
-    this.logger.warn(`Unlock failed: lockId mismatch`);
-    return false;
   }
 }

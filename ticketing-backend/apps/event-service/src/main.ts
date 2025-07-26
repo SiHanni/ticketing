@@ -6,7 +6,14 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: false, // 필드 강제 차단 해제
+      skipMissingProperties: true, // 없으면 무시
+    }),
+  );
 
   const config = new DocumentBuilder()
     .setTitle('Event Service API')

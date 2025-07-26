@@ -41,7 +41,7 @@ export class CreateEventDto {
   @IsUUID()
   venueId: string;
 
-  @ApiProperty({ example: '1' })
+  @ApiProperty({ example: 1 })
   @IsNumber()
   adminId: number;
 }

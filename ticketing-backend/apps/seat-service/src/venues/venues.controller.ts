@@ -9,6 +9,7 @@ import {
 import { VenuesService } from './venues.service';
 import { CreateVenueDto } from './dto/create-venues.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Venue } from './venue.entity';
 
 @ApiTags('Venues')
 @Controller('venues')
@@ -29,5 +30,10 @@ export class VenuesController {
     const seats = await this.venuesService.findSeats(id);
     if (!seats) throw new NotFoundException('해당 공연장의 좌석이 없습니다.');
     return seats;
+  }
+
+  @Get()
+  findAll(): Promise<Partial<Venue>[]> {
+    return this.venuesService.findAll();
   }
 }

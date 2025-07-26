@@ -71,3 +71,55 @@ NestJS 기반 예약 서비스에서는 **단일 Redis 인스턴스 환경**을 
 ## 🔮 향후 계획
 
 - 트래픽 테스트 결과 및 인프라 구성 변경에 따라 **Redis 클러스터 도입 + Redlock 전환 고려**
+
+## 명령어 정리
+
+SETNX (SET if Not Exists)
+
+- 문법: SETNX key value
+
+- 역할: key가 없을 때만 값을 설정함
+
+결과:
+
+- key가 없어서 성공적으로 설정하면 1
+
+- key가 이미 있으면 아무 것도 하지 않고 0
+
+SET with NX option
+
+- 문법: SET key value NX EX 60
+
+- 역할: NX = key가 없을 때만 set (SETNX와 동일한 조건)
+
+- 추가 기능: EX나 PX 옵션으로 TTL 설정 가능
+
+결과:
+
+- 성공 시 "OK"
+
+- 실패 시 nil
+
+```
+if redis.call("SETNX", KEYS[1], ARGV[1]) == 1 then
+          redis.call("EXPIRE", KEYS[1], ARGV[2])
+          return ARGV[1]
+        else
+          return nil
+        end
+        `,
+        1,
+        `seat:locked:${lockKey}`,
+        lockId,
+        ttl,
+```
+
+- 좌석 락을 잡으려고 시도 : 이미 다른 사용자가 잡고 있는 경우 실패, 락을 잡았다면 TTL과 함께 설정
+- eval() : EVAL 명령으로 Lua 스크립트를 실행할 수 있음
+- KEYS[1] 에 매핑된 값 : seat:locked:${lockKey}
+- ARGV[1] 에 매핑된 값 : lockId (랜덤 UUID) ( ARGV : ARGument Vector )
+- ARGV[1] 에 매핑된 값 : ttl (초 단위 TTL)
+- if redis.call("SETNX", KEYS[1], ARGV[1]) == 1 then : SETNX는 key가 없으면 값을 ARGV[1]로 설정 후 1을 반환
+- 이미 key가 있으면 아무것도 안 하고 0을 반환
+- 즉, 다른 사용자가 먼저 락을 걸지 않았다면 락을 획득 가능
+- redis.call("EXPIRE", KEYS[1], ARGV[2]) : 락을 잡았다면 TTL을 설정한다.

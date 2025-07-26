@@ -28,4 +28,14 @@ export class VenuesService {
 
     return venue.seats;
   }
+
+  async findAll(): Promise<Partial<Venue>[]> {
+    const venues = await this.venuesRepository.find();
+
+    return venues.map((v) => ({
+      id: v.id,
+      name: v.name,
+      address: v.address,
+    }));
+  }
 }

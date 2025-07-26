@@ -39,7 +39,8 @@ export class ReservationService {
     const { userId, seatId, eventId } = dto;
 
     // 1. 좌석 락 시도
-    const lockId = await this.seatLockService.tryLock(seatId);
+    const lockKey = `${eventId}:${seatId}`;
+    const lockId = await this.seatLockService.tryLock(lockKey);
 
     this.logger.log(`LOCK ID:${lockId}`);
     if (!lockId) {
@@ -49,17 +50,20 @@ export class ReservationService {
     let saved: Reservation;
 
     try {
+      const expiredAt = new Date(Date.now() + RESERVATION_TTL_SECONDS * 1000);
+
       const reservation = this.reservationRepository.create({
         userId,
         seatId,
         eventId,
         status: ReservationStatus.Pending,
-        expiredAt: new Date(Date.now() + 2 * 60 * 1000),
+        expiredAt,
       });
       saved = await this.reservationRepository.save(reservation);
 
+      const redisKey = `reservation:ttl:${saved.id}`;
       await this.redis.set(
-        `reservation:ttl:${saved.id}`,
+        redisKey,
         JSON.stringify({
           status: ReservationStatus.Pending,
           reservationId: saved.id,
@@ -69,9 +73,6 @@ export class ReservationService {
         'EX',
         RESERVATION_TTL_SECONDS,
       );
-      // 로그용
-      const value = await this.redis.get(`reservation:ttl:${saved.id}`);
-      this.logger.log('value:', value);
 
       this.kafkaClient.emit('reservation.requested', {
         reservationId: saved.id,

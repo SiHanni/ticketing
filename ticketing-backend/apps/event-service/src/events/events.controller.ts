@@ -33,7 +33,7 @@ export class EventsController {
     return this.eventsService.findAll();
   }
 
-  @Get(':id')
+  @Get('detail/:id')
   @ApiOperation({ summary: '이벤트 상세 조회' })
   @ApiResponse({
     status: 200,
@@ -43,5 +43,12 @@ export class EventsController {
   @ApiResponse({ status: 404, description: '이벤트를 찾을 수 없음' })
   findById(@Param('id', ParseIntPipe) id: number): Promise<Event> {
     return this.eventsService.findById(id);
+  }
+
+  @Get('venues')
+  @ApiOperation({ summary: '공연장 목록 조회 (seat-service 연동)' })
+  async fetchVenueListFromSeatService() {
+    console.log('✅ [event-service] venues/linked 호출됨');
+    return this.eventsService.getVenuesFromSeatService();
   }
 }

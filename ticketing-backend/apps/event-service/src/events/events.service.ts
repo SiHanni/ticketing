@@ -1,6 +1,7 @@
 import {
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
@@ -21,7 +22,6 @@ export class EventsService {
   async createEvent(dto: CreateEventDto): Promise<Event> {
     const eventCreateRequestAdminId = dto.adminId;
     const user = await this.getUserById(eventCreateRequestAdminId);
-    console.log('III', user);
     if (user.role !== 'admin') {
       throw new ForbiddenException('관리자 전용 기능입니다:(createEvent)');
     }
@@ -42,6 +42,22 @@ export class EventsService {
     } catch (error) {
       console.log('error');
       throw new ForbiddenException('유저 정보를 가져오는 데 실패했습니다.');
+    }
+  }
+
+  async getVenuesFromSeatService(): Promise<
+    { id: string; name: string; address: string }[]
+  > {
+    try {
+      const { data } = await this.httpService.axiosRef.get(
+        'http://localhost:3003/venues',
+      );
+
+      return data;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        '공연장 정보를 불러오지 못했습니다.',
+      );
     }
   }
 
