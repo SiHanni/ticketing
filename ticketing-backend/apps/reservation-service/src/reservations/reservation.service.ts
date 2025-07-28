@@ -35,8 +35,18 @@ export class ReservationService {
     await this.kafkaClient.connect(); // producer 연결
   }
 
-  async reserve(dto: CreateReservationDto) {
+  async reservation(dto: CreateReservationDto) {
     const { userId, seatId, eventId } = dto;
+    const existingConfirmed = await this.reservationRepository.findOne({
+      where: {
+        seatId,
+        eventId,
+        status: ReservationStatus.Confirmed,
+      },
+    });
+    if (existingConfirmed) {
+      throw new ConflictException('이미 예약 완료된 좌석입니다.');
+    }
 
     // 1. 좌석 락 시도
     const lockKey = `${eventId}:${seatId}`;
@@ -44,7 +54,7 @@ export class ReservationService {
 
     this.logger.log(`LOCK ID:${lockId}`);
     if (!lockId) {
-      throw new ConflictException('이미 다른 사용자가 선점한 좌석입니다.');
+      throw new ConflictException('이미 다른 사용자가 선점 중인 좌석입니다.');
     }
 
     let saved: Reservation;
@@ -69,6 +79,8 @@ export class ReservationService {
           reservationId: saved.id,
           userId: saved.userId,
           seatId: saved.seatId,
+          eventId: saved.eventId,
+          lockId,
         }),
         'EX',
         RESERVATION_TTL_SECONDS,
@@ -87,8 +99,6 @@ export class ReservationService {
     } catch (error) {
       this.logger.error('예약 생성 중 오류:', error);
       throw new InternalServerErrorException('예약 생성 실패');
-    } finally {
-      await this.seatLockService.unlock(seatId, lockId); // 4. 락 해제
     }
   }
 
@@ -103,6 +113,45 @@ export class ReservationService {
 
     reservation.status = ReservationStatus.Confirmed;
     await this.reservationRepository.save(reservation);
+
+    const redisReservationKey = `reservation:ttl:${reservationId}`;
+    const redisValue = await this.redis.get(redisReservationKey);
+
+    let lockId: string | undefined;
+
+    if (redisValue) {
+      try {
+        const parsed = JSON.parse(redisValue);
+        parsed.status = ReservationStatus.Confirmed;
+        lockId = parsed.lockId;
+
+        await this.redis.set(
+          redisReservationKey,
+          JSON.stringify(parsed),
+          'EX',
+          await this.redis.ttl(redisReservationKey), // 남은 TTL 유지
+        );
+      } catch (err) {
+        this.logger.error(
+          `Redis 예약 키 갱신 실패: reservationId=${reservationId}`,
+          err,
+        );
+      }
+    }
+
+    if (lockId) {
+      const lockKey = `${reservation.eventId}:${reservation.seatId}`;
+      const unlockResult = await this.seatLockService.unlock(lockKey, lockId);
+      if (!unlockResult) {
+        this.logger.warn(
+          `좌석 락 해제 실패: reservationId=${reservationId}, lockKey=${lockKey}`,
+        );
+      }
+    } else {
+      this.logger.warn(
+        `락 해제를 위한 lockId 없음: reservationId=${reservationId}`,
+      );
+    }
   }
 
   async expireReservation(reservationId: number) {
@@ -117,7 +166,27 @@ export class ReservationService {
     await this.reservationRepository.save(reservation);
 
     // Redis 좌석 락 해제
-    await this.redis.del(`seat:locked:${reservation.seatId}`);
+    const redisReservationKey = `reservation:ttl:${reservationId}`;
+    const lockKey = `${reservation.eventId}:${reservation.seatId}`;
+
+    let lockId: string | undefined;
+
+    try {
+      const parsed = JSON.parse(redisReservationKey);
+      lockId = parsed.lockId;
+    } catch (e) {
+      this.logger.error(`TTL 키 파싱 실패: ${e}`);
+      return;
+    }
+
+    await Promise.all([
+      this.redis.del(redisReservationKey),
+      lockId
+        ? this.seatLockService.unlock(lockKey, lockId)
+        : this.logger.warn(
+            `lockId 없음, 락 해제 불가: reservationId=${reservationId}`,
+          ),
+    ]);
 
     this.logger.warn(`예약 만료 처리 완료: ${reservationId}`);
   }

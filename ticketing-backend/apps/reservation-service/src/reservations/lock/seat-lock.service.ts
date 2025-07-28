@@ -62,7 +62,7 @@ export class SeatLockService {
         `seat:locked:${lockKey}`,
         lockId,
       );
-
+      console.log('RERE', result);
       return result === 1;
     } catch (err) {
       this.logger.error(`🚨 락 해제 실패: ${err}`);

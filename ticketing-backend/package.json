@@ -44,11 +44,13 @@
     "typeorm": "^0.3.25"
   },
   "devDependencies": {
+    "@faker-js/faker": "^9.9.0",
     "@nestjs/axios": "^4.0.1",
     "@types/bcrypt": "^6.0.0",
     "@types/node": "^20.9.0",
     "@types/passport-jwt": "^3.0.6",
     "@types/redis": "^4.0.11",
+    "artillery": "^2.0.23",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.3.3"
