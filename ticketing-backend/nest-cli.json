@@ -29,6 +29,11 @@
       "type": "application",
       "root": "apps/reservation-service",
       "entryFile": "src/main"
+    },
+    "websocket-service": {
+      "type": "application",
+      "root": "apps/websocket-service",
+      "entryFile": "src/main"
     }
   }
 }

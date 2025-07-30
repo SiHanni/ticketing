@@ -81,3 +81,7 @@ redis-cli config set notify-keyspace-events Ex
 ```
 
 배포 시에는 새로 도커 컴포즈 작성을 하는 것이 좋아보입니다.
+
+빌드
+
+pnpm run build:libs

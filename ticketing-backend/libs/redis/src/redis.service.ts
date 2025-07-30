@@ -6,10 +6,12 @@ export class RedisService implements OnModuleInit {
   private client: RedisClientType;
 
   async onModuleInit() {
-    this.client = createClient({
-      url: 'redis://localhost:6379',
-    });
-    await this.client.connect();
+    if (!this.client) {
+      this.client = createClient({ url: 'redis://localhost:6379' });
+      this.client.on('error', (err) => console.error('Redis Error:', err));
+      await this.client.connect();
+      console.log('✅ Redis connected');
+    }
   }
 
   async get(key: string) {
@@ -31,5 +33,25 @@ export class RedisService implements OnModuleInit {
     const subscriber = this.client.duplicate(); // 독립된 Redis 연결 생성 (Pub/Sub 전용)
     await subscriber.connect();
     await subscriber.subscribe(channel, (message: any) => callback(message));
+  }
+
+  // LPUSH: 리스트 왼쪽에 데이터 삽입
+  async lpush(key: string, value: string) {
+    return this.client.lPush(key, value);
+  }
+
+  // RPOP: 리스트 오른쪽에서 데이터 하나 꺼내기, 그리고 삭제
+  async rpop(key: string) {
+    return this.client.rPop(key);
+  }
+
+  // LLEN: 리스트 길이 조회
+  async llen(key: string) {
+    return this.client.lLen(key);
+  }
+
+  // List Range
+  async lrange(key: string, start: number, stop: number) {
+    return this.client.lRange(key, start, stop);
   }
 }

@@ -1,7 +1,8 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { ReservationService } from './reservation.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { QueueGuard } from '../middleware/queue.guard';
 
 @ApiTags('Reservations')
 @Controller('reservations')
@@ -9,6 +10,7 @@ export class ReservationController {
   constructor(private readonly reservationService: ReservationService) {}
 
   @Post()
+  @UseGuards(QueueGuard)
   @ApiOperation({ summary: '좌석 예약 요청' })
   @ApiResponse({ status: 201, description: '예약 요청이 정상적으로 처리됨' })
   reserve(@Body() dto: CreateReservationDto) {

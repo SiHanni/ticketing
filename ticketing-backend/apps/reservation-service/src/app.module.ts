@@ -4,6 +4,9 @@ import { ReservationModule } from './reservations/reservation.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Reservation } from './reservations/reservation.entity';
 import * as path from 'path';
+import { RedisService } from '@libs/redis';
+import { RedisModule } from '@libs/redis';
+import { ReservationExpirationWorker } from './scheduler/reservation-expiration.worker';
 
 @Module({
   imports: [
@@ -23,6 +26,8 @@ import * as path from 'path';
       synchronize: true,
     }),
     ReservationModule,
+    RedisModule,
   ],
+  providers: [RedisService, ReservationExpirationWorker],
 })
 export class AppModule {}

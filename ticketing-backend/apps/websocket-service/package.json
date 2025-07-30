@@ -1,0 +1,15 @@
+{
+  "name": "websocket-service",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node ../../dist/apps/websocket-service/apps/websocket-service/src/main.js",
+    "start:dev": "nest start --watch",
+    "build": "nest build"
+  },
+  "dependencies": {
+    "@nestjs/platform-socket.io": "^11.1.5",
+    "@nestjs/websockets": "^11.1.5",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
+  }
+}
