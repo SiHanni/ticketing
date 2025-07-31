@@ -4,12 +4,17 @@ import {
   Reservation,
   ReservationStatus,
 } from '../reservations/reservation.entity';
+import { RedisService } from '@libs/redis';
+import { SEAT_LOCK_PREFIX } from '../reservations/constants';
 
 @Injectable()
 export class ReservationExpirationWorker implements OnModuleInit {
   private readonly logger = new Logger(ReservationExpirationWorker.name);
 
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly redisService: RedisService,
+  ) {}
 
   async onModuleInit() {
     setInterval(async () => {
@@ -27,8 +32,20 @@ export class ReservationExpirationWorker implements OnModuleInit {
       .getMany();
 
     for (const reservation of expiredReservations) {
-      reservation.status = ReservationStatus.Expired;
-      await this.dataSource.getRepository(Reservation).save(reservation);
+      try {
+        reservation.status = ReservationStatus.Expired;
+        await this.dataSource.getRepository(Reservation).save(reservation);
+
+        const lockKey = `${SEAT_LOCK_PREFIX}:${reservation.eventId}:${reservation.seatId}`;
+        await this.redisService.del(lockKey);
+
+        this.logger.log(
+          `⏰ Reservation ${reservation.id} 만료 → 락 해제 완료 (${lockKey})`,
+        );
+      } catch (err) {
+        this.logger.error(`❌ 예약 ${reservation.id} 만료 처리 실패:`, err);
+      }
+
       this.logger.log(`Reservation ${reservation.id} expired and slot freed`);
     }
   }

@@ -54,4 +54,17 @@ export class RedisService implements OnModuleInit {
   async lrange(key: string, start: number, stop: number) {
     return this.client.lRange(key, start, stop);
   }
+
+  async del(key: string) {
+    return this.client.del(key);
+  }
+
+  // 특정 Set(key)에 저장된 모든 멤버(값)을 조회하는 메서드
+  async smembers(key: string): Promise<string[]> {
+    return this.client.sMembers(key);
+  }
+
+  async sadd(key: string, member: string) {
+    return this.client.sAdd(key, member);
+  }
 }

@@ -1,9 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { QueueService } from '../queue/queue.service';
 import { RedisService } from '@libs/redis';
-
-const TPS_LIMIT = 5; // 초당 입장 허용 인원 (테스트용)
-const ACTIVE_TTL = 300; // 입장 후 5분간 유효
+import { TPS_LIMIT, ACTIVE_TTL } from '../constants';
 
 @Injectable()
 export class TpsWorker implements OnModuleInit {
@@ -15,17 +13,26 @@ export class TpsWorker implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    // 1초마다 TPS_LIMIT명씩 입장 처리
+    // 3초마다 TPS_LIMIT명씩 입장 처리 (서버 스펙에따라 조정 가능)
     setInterval(async () => {
-      const eventId = 3; // 특정 이벤트 기준 (추후 멀티 이벤트 지원)
-      for (let i = 0; i < TPS_LIMIT; i++) {
-        const user = await this.queueService.dequeue(eventId);
-        if (user) {
-          await this.allowUser(user.userId);
-          this.logger.log(`✅ User ${user.userId} allowed to reserve`);
+      const eventIds = await this.redisService.smembers('activeEvents');
+      if (!eventIds || eventIds.length === 0) return;
+
+      for (const eventId of eventIds) {
+        if (isNaN(Number(eventId))) continue;
+
+        for (let i = 0; i < TPS_LIMIT; i++) {
+          const user = await this.queueService.dequeue(Number(eventId));
+
+          if (user) {
+            await this.allowUser(user.userId);
+            this.logger.log(
+              `✅ [Event ${eventId}] User ${user.userId} allowed to reserve`,
+            );
+          }
         }
       }
-    }, 1000);
+    }, 3000);
   }
 
   private async allowUser(userId: number) {

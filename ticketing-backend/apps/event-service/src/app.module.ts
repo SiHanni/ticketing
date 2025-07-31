@@ -3,6 +3,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventsModule } from './events/events.module';
 import { ConfigModule } from '@nestjs/config';
 import { Event } from './events/event.entity';
+import { RedisModule } from '@libs/redis';
+import { RedisService } from '@libs/redis';
+import { EventActivationWorker } from './scheduler/event-activation.worker';
 
 @Module({
   imports: [
@@ -18,6 +21,8 @@ import { Event } from './events/event.entity';
       synchronize: true,
     }),
     EventsModule,
+    RedisModule,
   ],
+  providers: [RedisService, EventActivationWorker],
 })
 export class AppModule {}

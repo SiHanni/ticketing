@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '@libs/redis';
 import { QueueUser } from './queue.interface';
+import { QUEUE_RESERVATION_PREFIX } from '../constants';
 
 @Injectable()
 export class QueueService {
@@ -9,7 +10,7 @@ export class QueueService {
   constructor(private readonly redisService: RedisService) {}
 
   private getQueueKey(eventId: number) {
-    return `queue:reservation:${eventId}`;
+    return `${QUEUE_RESERVATION_PREFIX}:${eventId}`;
   }
 
   // 유저를 대기열에 추가

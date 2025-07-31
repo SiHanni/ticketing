@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Redis } from 'ioredis';
 import { randomUUID } from 'crypto';
+import { SEAT_LOCK_PREFIX } from '../constants';
 
 const SEAT_LOCK_EXPIRE_SECONDS = 180;
 
@@ -28,7 +29,7 @@ export class SeatLockService {
         end
         `,
         1,
-        `seat:locked:${lockKey}`,
+        `${SEAT_LOCK_PREFIX}:${lockKey}`,
         lockId,
         ttl,
       );
@@ -36,7 +37,7 @@ export class SeatLockService {
 
       if (result) {
         this.logger.log(
-          `✅ 좌석 락 획득: seat:locked:${lockKey} | TTL: ${ttl}s`,
+          `✅ 좌석 락 획득: ${SEAT_LOCK_PREFIX}}:${lockKey} | TTL: ${ttl}s`,
         );
         return lockId;
       }
@@ -59,7 +60,7 @@ export class SeatLockService {
         end
         `,
         1,
-        `seat:locked:${lockKey}`,
+        `${SEAT_LOCK_PREFIX}:${lockKey}`,
         lockId,
       );
       console.log('RERE', result);
