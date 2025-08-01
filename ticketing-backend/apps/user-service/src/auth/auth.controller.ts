@@ -5,6 +5,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from '../dto/create-user.dto';
@@ -12,6 +13,7 @@ import { LoginUserDto } from '../dto/login-user.dto';
 import { UsersService } from '../users/users.service';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { User } from '../users/user.entity';
+import { JwtAuthGuard } from './jwt.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -47,6 +49,7 @@ export class AuthController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   getUser(@Param('id', ParseIntPipe) id: number): Promise<Partial<User>> {
     return this.usersService.findById(id);
   }

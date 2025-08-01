@@ -1,10 +1,11 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(private readonly usersService: UsersService) {
     super({
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -13,8 +14,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: number; email: string }) {
-    await Promise.resolve(); // Strict mode 경고 제거
-    return { userId: payload.sub, email: payload.email };
+  async validate(payload: { sub: number; email: string; role: string }) {
+    const user = await this.usersService.findById(payload.sub);
+    if (!user) throw new UnauthorizedException('사용자를 찾을 수 없습니다');
+    return { userId: user.id, email: payload.email, role: payload.role };
   }
 }

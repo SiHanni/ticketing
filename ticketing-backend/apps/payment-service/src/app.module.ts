@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PaymentModule } from './payments/payment.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import * as path from 'path';
 import { Payment } from './payments/payment.entity';
@@ -9,18 +9,21 @@ import { Payment } from './payments/payment.entity';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: path.resolve(__dirname, `../.env`),
+      envFilePath: '.env',
     }),
-
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'localhost',
-      port: 3307,
-      username: 'root',
-      password: '4581',
-      database: 'payment_service',
-      entities: [Payment],
-      synchronize: true,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'mysql',
+        host: config.get<string>('DB_HOST'),
+        port: parseInt(config.getOrThrow<string>('DB_PORT'), 10),
+        username: config.get<string>('DB_USERNAME'),
+        password: config.get<string>('DB_PASSWORD'),
+        database: config.get<string>('DB_NAME'),
+        entities: [Payment],
+        synchronize: true,
+      }),
     }),
     PaymentModule,
   ],
