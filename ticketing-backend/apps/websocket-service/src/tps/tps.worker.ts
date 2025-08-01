@@ -13,7 +13,7 @@ export class TpsWorker implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    // 3초마다 TPS_LIMIT명씩 입장 처리 (서버 스펙에따라 조정 가능)
+    // 5초마다 TPS_LIMIT명씩 입장 처리 (서버 스펙에따라 조정 가능)
     setInterval(async () => {
       const eventIds = await this.redisService.smembers('activeEvents');
       if (!eventIds || eventIds.length === 0) return;
@@ -32,10 +32,11 @@ export class TpsWorker implements OnModuleInit {
           }
         }
       }
-    }, 3000);
+    }, 5000);
   }
 
   private async allowUser(userId: number) {
-    await this.redisService.set(`user:${userId}:status`, 'active', ACTIVE_TTL);
+    const key = `user:${userId}:status`;
+    await this.redisService.set(key, 'active', ACTIVE_TTL);
   }
 }

@@ -37,6 +37,8 @@ export class ReservationService {
 
   async reservation(dto: CreateReservationDto) {
     const { userId, seatId, eventId } = dto;
+
+    // 이미 예약 확정인 좌석인지 체크
     const existingConfirmed = await this.reservationRepository.findOne({
       where: {
         seatId,
@@ -48,11 +50,10 @@ export class ReservationService {
       throw new ConflictException('이미 예약 완료된 좌석입니다.');
     }
 
-    // 1. 좌석 락 시도
+    // 좌석 락 시도
     const lockKey = `${eventId}:${seatId}`;
     const lockId = await this.seatLockService.tryLock(lockKey);
 
-    this.logger.log(`LOCK ID:${lockId}`);
     if (!lockId) {
       throw new ConflictException('이미 다른 사용자가 선점 중인 좌석입니다.');
     }
@@ -71,6 +72,7 @@ export class ReservationService {
       });
       saved = await this.reservationRepository.save(reservation);
 
+      // Redis TTL 예약 데이터
       const redisKey = `reservation:ttl:${saved.id}`;
       await this.redis.set(
         redisKey,
@@ -86,6 +88,10 @@ export class ReservationService {
         RESERVATION_TTL_SECONDS,
       );
 
+      // 예약 성공 시 tps worker에서 작업된 user:status 제거 → 재예약 방지
+      await this.redis.del(`user:${userId}:status`);
+
+      // 카프카 이벤트 발행
       this.kafkaClient.emit('reservation.requested', {
         reservationId: saved.id,
         userId,
@@ -167,26 +173,34 @@ export class ReservationService {
 
     // Redis 좌석 락 해제
     const redisReservationKey = `reservation:ttl:${reservationId}`;
+    const redisValue = await this.redis.get(redisReservationKey);
+
     const lockKey = `${reservation.eventId}:${reservation.seatId}`;
 
     let lockId: string | undefined;
 
     try {
-      const parsed = JSON.parse(redisReservationKey);
-      lockId = parsed.lockId;
+      if (redisValue) {
+        const parsed = JSON.parse(redisValue);
+        lockId = parsed.lockId;
+      }
     } catch (e) {
       this.logger.error(`TTL 키 파싱 실패: ${e}`);
-      return;
     }
 
-    await Promise.all([
-      this.redis.del(redisReservationKey),
-      lockId
-        ? this.seatLockService.unlock(lockKey, lockId)
-        : this.logger.warn(
-            `lockId 없음, 락 해제 불가: reservationId=${reservationId}`,
-          ),
-    ]);
+    // TTL Key 삭제
+    await this.redis.del(redisReservationKey);
+
+    // 좌석 락 해제
+    if (lockId) {
+      await this.seatLockService.unlock(
+        `${reservation.eventId}:${reservation.seatId}`,
+        lockId,
+      );
+    }
+
+    // 만료된 사용자도 상태 제거
+    await this.redis.del(`user:${reservation.userId}:status`);
 
     this.logger.warn(`예약 만료 처리 완료: ${reservationId}`);
   }

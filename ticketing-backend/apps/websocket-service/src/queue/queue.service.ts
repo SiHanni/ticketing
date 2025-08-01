@@ -36,4 +36,14 @@ export class QueueService {
     const key = this.getQueueKey(eventId);
     return this.redisService.llen(key);
   }
+
+  async removeUser(userId: number, eventId: number): Promise<void> {
+    const key = this.getQueueKey(eventId);
+    const queue = await this.redisService.lrange(key, 0, -1);
+    const target = queue.find((item) => JSON.parse(item).userId === userId);
+    if (target) {
+      await this.redisService.lrem(key, 0, target);
+      this.logger.debug(`User ${userId} 대기열에서 제거됨`);
+    }
+  }
 }

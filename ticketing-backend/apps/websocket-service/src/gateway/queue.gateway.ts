@@ -8,6 +8,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { QueueService } from '../queue/queue.service';
+import { QUEUE_RESERVATION_PREFIX } from '../constants';
 
 @WebSocketGateway({
   cors: { origin: '*' }, // 테스트 단계에서는 전체 허용
@@ -29,6 +30,12 @@ export class QueueGateway implements OnGatewayConnection {
       return;
     }
 
+    const numericUserId = Number(userId);
+    const numericEventId = Number(eventId);
+
+    // (중복 접속 제거) 기존에 남아있던 동일 유저 제거
+    await this.queueService.removeUser(numericUserId, numericEventId);
+
     // 대기열 등록
     await this.queueService.enqueue({
       userId: Number(userId),
@@ -44,8 +51,9 @@ export class QueueGateway implements OnGatewayConnection {
     }, 3000);
 
     // 연결 종료 시 interval 제거
-    client.on('disconnect', () => {
+    client.on('disconnect', async () => {
       clearInterval(intervalId);
+      await this.queueService.removeUser(Number(userId), Number(eventId));
     });
   }
 
@@ -56,7 +64,7 @@ export class QueueGateway implements OnGatewayConnection {
     eventId: number,
   ) {
     // Redis 리스트 전체 조회
-    const key = `queue:reservation:${eventId}`;
+    const key = `${QUEUE_RESERVATION_PREFIX}:${eventId}`;
     const queue = await this.queueService['redisService'].lrange(key, 0, -1);
 
     // 자신의 순번 계산
@@ -65,7 +73,7 @@ export class QueueGateway implements OnGatewayConnection {
 
     if (position > 0) {
       client.emit('queue-position', {
-        message: `Your current position in the queue`,
+        message: `현재 대기열 순번 ::`,
         position,
       });
     } else {

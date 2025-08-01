@@ -68,7 +68,12 @@ export class RedisService implements OnModuleInit {
     return this.client.sAdd(key, member);
   }
 
+  // set 자료구조 : 지정한 멤버를 삭제, 중복이 없으므로 해당 멤버만 바로 제거
   async srem(key: string, member: string): Promise<number> {
     return await this.client.sRem(key, member);
+  }
+
+  async lrem(key: string, count: number, value: string): Promise<number> {
+    return this.client.lRem(key, count, value);
   }
 }
