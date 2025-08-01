@@ -29,12 +29,20 @@ export class EventActivationWorker implements OnModuleInit {
       .andWhere('event.endDate >= :now', { now })
       .getMany();
 
-    if (events.length === 0) return;
+    const activeEventIds = events.map((e) => String(e.id));
 
-    for (const e of events) {
-      await this.redisService.sadd('activeEvents', String(e.id));
+    // Redis에 현재 저장된 활성화 이벤트 값들
+    const currentIds = await this.redisService.smembers('activeEvents');
+
+    const toRemove = currentIds.filter((id) => !activeEventIds.includes(id));
+    for (const id of toRemove) {
+      await this.redisService.srem('activeEvents', id);
     }
 
+    const toAdd = activeEventIds.filter((id) => !currentIds.includes(id));
+    for (const id of toAdd) {
+      await this.redisService.sadd('activeEvents', id);
+    }
     this.logger.debug(`🔄 활성 이벤트 갱신 완료 (${events.length}건)`);
   }
 }

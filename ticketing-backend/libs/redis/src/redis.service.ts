@@ -67,4 +67,8 @@ export class RedisService implements OnModuleInit {
   async sadd(key: string, member: string) {
     return this.client.sAdd(key, member);
   }
+
+  async srem(key: string, member: string): Promise<number> {
+    return await this.client.sRem(key, member);
+  }
 }
