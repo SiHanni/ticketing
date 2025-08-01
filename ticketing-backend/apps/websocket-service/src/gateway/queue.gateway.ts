@@ -33,7 +33,7 @@ export class QueueGateway implements OnGatewayConnection {
     const numericUserId = Number(userId);
     const numericEventId = Number(eventId);
 
-    // (중복 접속 제거) 기존에 남아있던 동일 유저 제거
+    // (중복 접속 제거) 기존에 남아있던 동일 유저 제거 (다중 브라우저를 통한 다 접속 방지)
     await this.queueService.removeUser(numericUserId, numericEventId);
 
     // 대기열 등록
