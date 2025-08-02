@@ -21,7 +21,6 @@ export class QueueGateway implements OnGatewayConnection {
 
   // 클라이언트가 소켓으로 처음 연결될 때
   async handleConnection(client: Socket) {
-    // 연결 파라미터에서 userId, eventId 가져오기
     const { userId, eventId } = client.handshake.query;
 
     if (!userId || !eventId) {
@@ -30,24 +29,24 @@ export class QueueGateway implements OnGatewayConnection {
       return;
     }
 
-    const numericUserId = Number(userId);
-    const numericEventId = Number(eventId);
+    const uid = Number(userId);
+    const eid = Number(eventId);
 
-    // (중복 접속 제거) 기존에 남아있던 동일 유저 제거 (다중 브라우저를 통한 다 접속 방지)
-    await this.queueService.removeUser(numericUserId, numericEventId);
+    // 중복 접속 제거
+    await this.queueService.removeUser(uid, eid);
 
     // 대기열 등록
-    await this.queueService.enqueue({
-      userId: Number(userId),
-      eventId: Number(eventId),
-    });
+    await this.queueService.enqueue({ userId: uid, eventId: eid });
 
     // 접속 직후 1회 순번 전달
     await this.sendUserPosition(client, Number(userId), Number(eventId));
 
-    // 3초마다 순번 업데이트 전달
+    // 3초마다 순번 조회 (O(1))
     const intervalId = setInterval(async () => {
-      await this.sendUserPosition(client, Number(userId), Number(eventId));
+      const position = await this.queueService.getPosition(uid, eid);
+      client.emit('queue-position', {
+        position: position >= 0 ? position + 1 : null,
+      });
     }, 3000);
 
     // 연결 종료 시 interval 제거
@@ -63,22 +62,17 @@ export class QueueGateway implements OnGatewayConnection {
     userId: number,
     eventId: number,
   ) {
-    // Redis 리스트 전체 조회
-    const key = `${QUEUE_RESERVATION_PREFIX}:${eventId}`;
-    const queue = await this.queueService['redisService'].lrange(key, 0, -1);
+    // ZSET에서 순번 조회
+    const rank = await this.queueService.getPosition(userId, eventId);
 
-    // 자신의 순번 계산
-    const position =
-      queue.findIndex((item: string) => JSON.parse(item).userId === userId) + 1;
-
-    if (position > 0) {
+    if (rank !== null && rank >= 0) {
       client.emit('queue-position', {
         message: `현재 대기열 순번 ::`,
-        position,
+        position: rank + 1, // 1등부터 시작하도록 +1
       });
     } else {
       client.emit('queue-position', {
-        message: 'You are not in the queue',
+        message: '대기열에 존재하지 않습니다.',
         position: null,
       });
     }

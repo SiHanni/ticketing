@@ -6,10 +6,35 @@ services:
     container_name: redis
     ports:
       - '6379:6379'
-    command: ['redis-server', '--notify-keyspace-events', 'Ex']
+    command: [
+        'redis-server',
+        '--appendonly',
+        'no', # 디스크 영속화 비활성화 (순수 메모리 모드)
+        '--save',
+        '', # RDB 스냅샷 비활성화
+        '--maxmemory',
+        '1gb', # Redis 최대 메모리 사용량 제한
+        '--maxmemory-policy',
+        'allkeys-lru', # 메모리 초과 시 LRU 정책으로 키 제거
+        '--tcp-keepalive',
+        '60', # TCP 연결 유지 시간 (초)
+        '--timeout',
+        '0', # 유휴 연결 강제 종료 없음
+        '--hz',
+        '50', # 내부 housekeeping 주기 상승 (만료 키 반응 속도 개선)
+        '--notify-keyspace-events',
+        'Ex', # TTL 만료 이벤트 활성화
+        '--protected-mode',
+        'no', # 로컬 테스트용 보호모드 해제
+      ]
     restart: unless-stopped
     volumes:
       - redis-data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 2g # Docker 컨테이너 메모리 한도
+          cpus: '2.0' # CPU 2코어 사용 제한
 
   redis-insight:
     image: redis/redisinsight:latest

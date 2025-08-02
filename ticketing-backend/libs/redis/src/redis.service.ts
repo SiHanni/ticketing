@@ -14,10 +14,25 @@ export class RedisService implements OnModuleInit {
     }
   }
 
+  /**
+   * 특정 키에 저장된 값을 조회
+   * @param key Redis 키
+   * @returns 저장된 문자열 값 또는 null
+   * @성능 O(1) (메모리 조회)
+   */
   async get(key: string) {
     return this.client.get(key);
   }
 
+  /**
+   * 특정 키에 값을 저장 (선택적으로 TTL 적용)
+   * @param key Redis 키
+   * @param value 저장할 문자열 값
+   * @param ttlInSeconds TTL(초 단위, 선택)
+   * @returns 성공 시 "OK"
+   * @성능 O(1)
+   * @주의 원자성을 위해 SET 명령어에서 EX 옵션 사용
+   */
   async set(key: string, value: string, ttlInSeconds?: number) {
     await this.client.set(key, value);
     if (ttlInSeconds) {
@@ -25,55 +40,141 @@ export class RedisService implements OnModuleInit {
     }
   }
 
-  async publish(channel: string, message: string) {
-    await this.client.publish(channel, message);
-  }
-
-  async subscribe(channel: string, callback: (message: string) => void) {
-    const subscriber = this.client.duplicate(); // 독립된 Redis 연결 생성 (Pub/Sub 전용)
-    await subscriber.connect();
-    await subscriber.subscribe(channel, (message: any) => callback(message));
-  }
-
-  // LPUSH: 리스트 왼쪽에 데이터 삽입
-  async lpush(key: string, value: string) {
-    return this.client.lPush(key, value);
-  }
-
-  // RPOP: 리스트 오른쪽에서 데이터 하나 꺼내기, 그리고 삭제
-  async rpop(key: string) {
-    return this.client.rPop(key);
-  }
-
-  // LLEN: 리스트 길이 조회
-  async llen(key: string) {
-    return this.client.lLen(key);
-  }
-
-  // List Range
-  async lrange(key: string, start: number, stop: number) {
-    return this.client.lRange(key, start, stop);
-  }
-
+  /**
+   * 특정 키 삭제
+   * @param key Redis 키
+   * @returns 삭제된 키 개수
+   * @성능 O(1)
+   */
   async del(key: string) {
     return this.client.del(key);
   }
 
-  // 특정 Set(key)에 저장된 모든 멤버(값)을 조회하는 메서드
+  /**
+   * 특정 채널에 메시지 발행 (Pub/Sub)
+   * @param channel 채널 이름
+   * @param message 발행할 메시지
+   * @returns 해당 메시지를 받은 클라이언트 수
+   * @성능 O(N) (구독자 수에 비례)
+   */
+  async publish(channel: string, message: string) {
+    await this.client.publish(channel, message);
+  }
+
+  /**
+   * 특정 채널을 구독하여 메시지 수신
+   * @param channel 채널 이름
+   * @param callback 메시지 수신 시 실행할 콜백
+   * @성능 O(1)
+   * @주의 duplicate() 사용으로 별도 연결 생성 → 사용 종료 시 unsubscribe 필요
+   */
+  async subscribe(channel: string, callback: (message: string) => void) {
+    const subscriber = this.client.duplicate();
+    await subscriber.connect();
+    await subscriber.subscribe(channel, (message: any) => callback(message));
+  }
+
+  /**
+   * Set에 포함된 모든 멤버 조회
+   * @param key Set 키
+   * @returns 멤버 배열
+   * @성능 O(N) (Set 크기에 비례)
+   * @주의 매우 큰 Set은 SSCAN 사용 고려
+   */
   async smembers(key: string): Promise<string[]> {
     return this.client.sMembers(key);
   }
 
+  /**
+   * Set에 멤버 추가
+   * @param key Set 키
+   * @param member 추가할 값
+   * @returns 1: 추가 성공, 0: 이미 존재
+   * @성능 O(1)
+   */
   async sadd(key: string, member: string) {
     return this.client.sAdd(key, member);
   }
 
-  // set 자료구조 : 지정한 멤버를 삭제, 중복이 없으므로 해당 멤버만 바로 제거
+  /**
+   * Set에서 특정 멤버 제거
+   * @param key Set 키
+   * @param member 제거할 값
+   * @returns 제거된 개수
+   * @성능 O(1)
+   */
   async srem(key: string, member: string): Promise<number> {
     return await this.client.sRem(key, member);
   }
 
-  async lrem(key: string, count: number, value: string): Promise<number> {
-    return this.client.lRem(key, count, value);
+  /* ------------------- ZSET 메서드 추가 ------------------- */
+
+  /**
+   * ZSET에 멤버 추가
+   * @param key ZSET 키
+   * @param score 정렬 기준 점수 (보통 timestamp 사용)
+   * @param member 추가할 멤버
+   * @returns 추가된 요소 개수 (이미 있으면 0)
+   * @성능 O(logN)
+   */
+  async zadd(key: string, score: number, member: string): Promise<number> {
+    return this.client.zAdd(key, [{ score, value: member }]);
+  }
+
+  /**
+   * ZSET에서 특정 멤버의 순위 조회
+   * @param key ZSET 키
+   * @param member 멤버 값
+   * @returns 0부터 시작하는 순위 또는 null
+   * @성능 O(logN)
+   */
+  async zrank(key: string, member: string): Promise<number | null> {
+    return this.client.zRank(key, member);
+  }
+
+  /**
+   * ZSET에서 가장 낮은 score의 멤버 하나 추출 및 제거
+   * @param key ZSET 키
+   * @returns [멤버 값] 배열, 없으면 빈 배열
+   * @성능 O(logN)
+   */
+  async zpopmin(key: string): Promise<string[]> {
+    const result: { value: string; score: number } | null =
+      await this.client.zPopMin(key);
+
+    if (!result) {
+      return [];
+    }
+
+    return [result.value];
+  }
+
+  /**
+   * ZSET에서 특정 멤버 제거
+   * @param key ZSET 키
+   * @param member 제거할 멤버
+   * @returns 제거된 요소 개수
+   * @성능 O(logN)
+   */
+  async zrem(key: string, member: string): Promise<number> {
+    return this.client.zRem(key, member);
+  }
+
+  /**
+   * ZSET에 포함된 멤버 개수 조회
+   * @param key ZSET 키
+   * @returns 멤버 개수
+   * @성능 O(1)
+   */
+  async zcard(key: string): Promise<number> {
+    return this.client.zCard(key);
+  }
+
+  async zrangeByScore(
+    key: string,
+    min: number,
+    max: number,
+  ): Promise<string[]> {
+    return this.client.zRangeByScore(key, min, max);
   }
 }

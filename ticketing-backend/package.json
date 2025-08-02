@@ -18,7 +18,8 @@
     "build:payment": "pnpm --filter payment-service build",
     "build:reservation": "pnpm --filter reservation-service build",
     "build": "pnpm --filter @libs/* build && pnpm --filter apps/* build",
-    "build:libs": "pnpm --filter @libs/* build"
+    "build:libs": "pnpm --filter @libs/* build",
+    "load-test": "cd artillery/script/test1 && NODE_OPTIONS='-r ts-node/register' artillery run artillery.yml -o result.json"
   },
   "dependencies": {
     "@nestjs-modules/ioredis": "^2.0.2",
@@ -41,7 +42,6 @@
     "reflect-metadata": "^0.1.14",
     "rxjs": "^7.8.2",
     "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1",
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.25"
   },
@@ -54,10 +54,14 @@
     "@types/node": "^20.9.0",
     "@types/passport-jwt": "^3.0.6",
     "@types/redis": "^4.0.11",
+    "@types/ws": "^8.18.1",
     "artillery": "^2.0.23",
+    "axios": "^1.11.0",
+    "socket.io-client": "^4.8.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.20.3",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "ws": "^8.18.3"
   }
 }

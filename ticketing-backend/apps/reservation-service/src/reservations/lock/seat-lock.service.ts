@@ -37,7 +37,7 @@ export class SeatLockService {
 
       if (result) {
         this.logger.log(
-          `✅ 좌석 락 획득: ${SEAT_LOCK_PREFIX}}:${lockKey} | TTL: ${ttl}s`,
+          `✅ 좌석 락 획득: ${SEAT_LOCK_PREFIX}:${lockKey} | TTL: ${ttl}s`,
         );
         return lockId;
       }
