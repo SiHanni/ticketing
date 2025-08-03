@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { PaymentMethod } from '../payments/payment.entity';
 
 export class CreatePaymentDto {
   @ApiProperty({ example: 1 })
@@ -9,4 +10,8 @@ export class CreatePaymentDto {
   @ApiProperty({ example: 321 })
   @IsNumber()
   reservationId: number;
+
+  @ApiProperty({ enum: PaymentMethod, example: PaymentMethod.CARD })
+  @IsEnum(PaymentMethod)
+  paymentMethod: PaymentMethod;
 }

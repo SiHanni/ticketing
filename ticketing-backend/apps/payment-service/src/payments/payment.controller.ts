@@ -12,6 +12,7 @@ export class PaymentController {
   @ApiOperation({ summary: '결제 요청' })
   @ApiResponse({ status: 201, description: '결제 성공' })
   create(@Body() dto: CreatePaymentDto) {
-    return this.paymentService.create(dto);
+    const { userId, reservationId } = dto;
+    return this.paymentService.createAutoPayment(userId, reservationId);
   }
 }

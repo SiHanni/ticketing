@@ -13,6 +13,7 @@ export class PaymentConsumer {
   @MessagePattern('reservation.requested')
   async handleReservationRequested(@Payload() data: CreatePaymentDto) {
     this.logger.log('[payment-service] Consumed reservation.requested:', data);
-    await this.paymentService.create(data);
+    const { userId, reservationId } = data;
+    return this.paymentService.createAutoPayment(userId, reservationId);
   }
 }
