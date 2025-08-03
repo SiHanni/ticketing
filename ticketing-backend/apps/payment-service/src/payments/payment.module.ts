@@ -8,7 +8,9 @@ import { KafkaModule } from '@libs/kafka';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Payment]), KafkaModule],
-  controllers: [PaymentController],
+  // http 테스트 용
+  //controllers: [PaymentController],
+  controllers: [PaymentConsumer],
   providers: [PaymentService, PaymentConsumer],
 })
 export class PaymentModule {}

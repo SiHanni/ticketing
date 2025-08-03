@@ -17,9 +17,11 @@ export class QueueGateway implements OnGatewayConnection {
   @WebSocketServer()
   server: Server;
 
+  // 유저별 소켓 관리
+  private clients = new Map<string, Socket>();
+
   constructor(private readonly queueService: QueueService) {}
 
-  // 클라이언트가 소켓으로 처음 연결될 때
   async handleConnection(client: Socket) {
     const { userId, eventId } = client.handshake.query;
 
@@ -31,15 +33,14 @@ export class QueueGateway implements OnGatewayConnection {
 
     const uid = Number(userId);
     const eid = Number(eventId);
+    const key = `${eid}:${uid}`;
 
     // 중복 접속 제거
     await this.queueService.removeUser(uid, eid);
+    this.clients.set(key, client);
 
     // 대기열 등록
     await this.queueService.enqueue({ userId: uid, eventId: eid });
-
-    // 접속 직후 1회 순번 전달
-    await this.sendUserPosition(client, Number(userId), Number(eventId));
 
     // 3초마다 순번 조회 (O(1))
     const intervalId = setInterval(async () => {
@@ -54,6 +55,19 @@ export class QueueGateway implements OnGatewayConnection {
       clearInterval(intervalId);
       await this.queueService.removeUser(Number(userId), Number(eventId));
     });
+  }
+
+  /** 활성화 신호 전송 */
+  sendActiveSignal(userId: number, eventId: number) {
+    const key = `${eventId}:${userId}`;
+    const client = this.clients.get(key);
+    if (client) {
+      client.emit('user-active', {
+        message: '입장 가능합니다',
+        userId,
+        eventId,
+      });
+    }
   }
 
   // 특정 유저의 순번을 계산해서 전송

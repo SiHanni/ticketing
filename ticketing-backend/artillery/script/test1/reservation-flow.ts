@@ -1,84 +1,11 @@
 import { io } from 'socket.io-client';
 import axios from 'axios';
-import { createClient } from 'redis';
 
 async function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const redisClient = createClient({ url: 'redis://localhost:6379' });
-redisClient.on('error', (err) => console.error('Redis Error:', err));
-
-(async () => {
-  if (!redisClient.isOpen) {
-    await redisClient.connect();
-    console.log('✅ Redis connected (Test Script)');
-  }
-})();
-
-/**
- * 1) WebSocket 접속 → 대기열 등록
- */
-export async function connectWebSocket(this: any, context: any) {
-  const { userId, eventId } = context.vars;
-
-  return new Promise((resolve) => {
-    const socket = io('ws://localhost:3006', {
-      query: { userId, eventId },
-      transports: ['websocket'],
-      timeout: 5000,
-    });
-
-    socket.on('open', () => {
-      console.log(`🔌 [WS 연결 성공] userId=${userId}`);
-      resolve(true);
-      //setTimeout(() => {
-      //  socket.disconnect();
-      //  resolve(true);
-      //}, 350000);
-    });
-
-    socket.on('error', (err) => {
-      console.error(`❌ [WS 연결 실패] userId=${userId} (${err.message})`);
-      resolve(false);
-    });
-  });
-}
-
-/**
- * 2) Redis에서 active 상태까지 대기
- */
-export async function waitForActiveStatus(
-  this: any,
-  context: any,
-  events: any,
-  done: any,
-) {
-  const { userId, eventId } = context.vars;
-
-  return new Promise(async (resolve) => {
-    let attempts = 0;
-    const maxAttempts = 50; // 최대 10초(0.2초 x 50)
-
-    while (attempts < maxAttempts) {
-      const status = await redisClient.get(`user:${eventId}:${userId}:status`);
-      if (status === 'active') {
-        console.log(`✅ [ACTIVE 감지] userId=${userId}`);
-        return resolve(true);
-      }
-      attempts++;
-      await new Promise((res) => setTimeout(res, 200));
-    }
-
-    console.warn(`⚠️ [타임아웃] userId=${userId} 활성화 못 받음`);
-    resolve(false);
-  });
-}
-
-/**
- * 3) 예약 요청 API 호출
- */
-export async function simulateReservation(
+export async function ticketingFullCycle(
   this: any,
   context: any,
   events: any,
@@ -86,63 +13,114 @@ export async function simulateReservation(
 ) {
   const { userId, seatId, eventId } = context.vars;
 
-  console.log(`⏳ [대기열 대기 시작] userId=${userId}`);
+  let socket: any;
+  let reservationId: number | null = null;
 
-  // active 상태가 될 때까지 무한 대기
-  while (true) {
-    try {
-      const res = await axios
-        .get(`http://localhost:3002/status/${userId}`)
-        .catch(() => null);
-      if (res?.data?.status === 'active') {
-        console.log(`✅ [대기열 통과] userId=${userId} → 예약 요청 진행`);
-        break;
-      }
-    } catch {}
-    await wait(1000); // 1초마다 상태 확인
-  }
-
-  // active 상태 후 예약 요청
-  try {
-    const res = await axios.post('http://localhost:3002/reservations', {
-      userId,
-      seatId,
-      eventId,
+  return new Promise((resolve) => {
+    socket = io('ws://localhost:3006', {
+      query: { userId, eventId },
+      transports: ['websocket'],
+      timeout: 10000,
     });
-    console.log(`🎟️ [예약 성공] userId=${userId}, status=${res.status}`);
-  } catch (err: any) {
-    console.warn(
-      `⚠️ [예약 실패] userId=${userId}, status=${err?.response?.status}, msg=${err?.response?.data?.message}`,
-    );
-  }
 
-  return done();
-}
+    socket.on('connect', () => {
+      //console.log(`🔌 [WS 연결 성공] userId=${userId}`);
+    });
 
-/**
- * 4) 결제 시뮬레이션 (70% 성공)
- */
-export async function simulatePayment(
-  this: any,
-  context: any,
-  events: any,
-  done: any,
-) {
-  const { userId } = context.vars;
+    // ✅ 입장 허용(active) 수신 시 예약 요청
+    socket.on('user-active', async () => {
+      console.log(`✅ [ACTIVE] userId=${userId} → 예약 요청 시작`);
 
-  if (Math.random() < 0.8) {
-    try {
-      await axios.post('http://localhost:3005/payments', {
-        userId,
-        method: 'credit-card',
-      });
-      console.log(`💰 [결제 성공] userId=${userId}`);
-    } catch {
-      console.warn(`⚠️ [결제 요청 실패] userId=${userId}`);
-    }
-  } else {
-    console.log(`🚫 [결제 스킵] userId=${userId}`);
-  }
+      try {
+        // 예약 요청
+        const res = await axios.post('http://localhost:3002/reservations', {
+          userId,
+          seatId,
+          eventId,
+        });
+        reservationId = res.data.reservationId;
+        console.log(
+          `🎟️ [예약 성공] userId=${userId}, reservationId=${reservationId}`,
+        );
+      } catch (err: any) {
+        console.warn(
+          `⚠️ [예약 요청 실패] userId=${userId}`,
+          err?.response?.data,
+        );
+        socket.disconnect();
+        return resolve(false);
+      }
 
-  return done();
+      // ✅ Kafka를 통한 결제/확정 대기 (최대 10초 대기)
+      let attempts = 0;
+      const maxAttempts = 10;
+      while (attempts < maxAttempts && reservationId) {
+        const confirmCheck = await axios
+          .get(`http://localhost:3002/reservations/${reservationId}`)
+          .catch(() => null);
+        if (confirmCheck?.data?.status === 'Confirmed') {
+          console.log(`✅ [Confirmed 상태 확인] userId=${userId}`);
+          break;
+        }
+        attempts++;
+        await wait(1000);
+      }
+
+      socket.disconnect();
+      resolve(true);
+
+      // HTTP 테스트 용
+      //// ✅ 90% 확률로 결제 시도
+      //if (Math.random() < 0.9 && reservationId) {
+      //  try {
+      //    const payRes = await axios.post('http://localhost:3005/payments', {
+      //      userId,
+      //      reservationId,
+      //      name: userId + 'name',
+      //      paymentMethod: 'CARD',
+      //    });
+      //    console.log(
+      //      `💰 [결제 성공] userId=${userId}, status=${payRes.status}`,
+      //    );
+      //
+      //    // Confirmed 상태 검증
+      //    await wait(1000);
+      //    const confirmCheck = await axios
+      //      .get(`http://localhost:3002/reservations/${reservationId}`)
+      //      .catch(() => null);
+      //    if (confirmCheck?.data?.status === 'Confirmed') {
+      //      console.log(`✅ [Confirmed 상태 확인] userId=${userId}`);
+      //    } else {
+      //      console.warn(`⚠️ [Confirmed 상태 미반영] userId=${userId}`);
+      //    }
+      //  } catch (err) {
+      //    console.warn(`⚠️ [결제 요청 실패] userId=${userId}`);
+      //  }
+      //} else if (reservationId) {
+      //  console.log(`🚫 [결제 스킵 or 실패 예정] userId=${userId}`);
+      //  // TTL 만료 확인 (예약 좌석 회수 확인)
+      //  await wait(10000);
+      //  const ttlCheck = await axios
+      //    .get(`http://localhost:3002/reservations/${reservationId}`)
+      //    .catch(() => null);
+      //  if (!ttlCheck || ttlCheck.data?.status !== 'Confirmed') {
+      //    console.log(`♻️ [좌석 회수 완료 확인] userId=${userId}`);
+      //  } else {
+      //    console.warn(`⚠️ [좌석 회수 실패] userId=${userId}`);
+      //  }
+      //}
+      //
+      //socket.disconnect();
+      //resolve(true);
+    });
+
+    socket.on('disconnect', () => {
+      console.log(`🔌 [WS 연결 종료] userId=${userId}`);
+    });
+
+    socket.on('error', (err) => {
+      console.error(`❌ [WS 오류] userId=${userId}`, err.message);
+      resolve(false);
+    });
+  });
 }

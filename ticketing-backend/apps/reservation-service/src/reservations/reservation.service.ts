@@ -4,6 +4,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
@@ -203,5 +204,19 @@ export class ReservationService {
     await this.redis.del(`user:${reservation.userId}:status`);
 
     this.logger.warn(`예약 만료 처리 완료: ${reservationId}`);
+  }
+
+  /** ✅ 예약 상태 조회 */
+  async getReservationStatus(reservationId: number) {
+    const reservation = await this.reservationRepository.findOne({
+      where: { id: reservationId },
+      select: ['id', 'status', 'userId', 'seatId', 'eventId', 'expiredAt'],
+    });
+
+    if (!reservation) {
+      throw new NotFoundException('해당 예약을 찾을 수 없습니다.');
+    }
+
+    return reservation;
   }
 }

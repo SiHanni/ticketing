@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Param } from '@nestjs/common';
 import { ReservationService } from './reservation.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -15,5 +15,12 @@ export class ReservationController {
   @ApiResponse({ status: 201, description: '예약 요청이 정상적으로 처리됨' })
   reserve(@Body() dto: CreateReservationDto) {
     return this.reservationService.reservation(dto);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: '예약 상태 조회' })
+  @ApiResponse({ status: 200, description: '예약 상태 반환' })
+  async getReservation(@Param('id') id: number) {
+    return this.reservationService.getReservationStatus(id);
   }
 }

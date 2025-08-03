@@ -1,8 +1,8 @@
 config:
   target: 'http://localhost:3002'
   phases:
-    - duration: 60 # 2분 동안 부하 발생
-      arrivalRate: 10 # 초당 100명 접속
+    - duration: 60
+      arrivalRate: 200
   processor: './reservation-flow.ts'
   payload:
     path: './reservation-test-payload.csv'
@@ -25,12 +25,6 @@ config:
     - 'result.json'
 
 scenarios:
-  - name: '🎟️ 티켓 예약 전체 시나리오'
+  - name: '🎟️ 티켓팅 Full Cycle 테스트'
     flow:
-      - function: 'connectWebSocket'
-      - think: 1
-      - function: 'waitForActiveStatus'
-      - think: 1
-      - function: 'simulateReservation'
-      - think: 1
-      - function: 'simulatePayment'
+      - function: 'ticketingFullCycle'

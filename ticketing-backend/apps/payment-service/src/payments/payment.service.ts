@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Payment } from './payment.entity';
 import { Repository } from 'typeorm';
@@ -7,6 +7,7 @@ import { KafkaService } from '@libs/kafka';
 
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
   constructor(
     @InjectRepository(Payment)
     private readonly paymentRepository: Repository<Payment>,
@@ -15,12 +16,13 @@ export class PaymentService {
   ) {}
 
   async create(dto: CreatePaymentDto): Promise<Payment> {
-    const { userId, reservationId, name, paymentMethod } = dto;
-
+    const { userId, reservationId, paymentMethod } = dto;
+    this.logger.log(
+      `결제 요청 :: ${userId}, ${reservationId}, ${name}, ${paymentMethod}`,
+    );
     const payment = this.paymentRepository.create({
       userId,
       reservationId,
-      name,
       paymentMethod,
       paidAt: new Date(),
     });

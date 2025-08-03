@@ -23,9 +23,6 @@ export class Payment {
   @Column()
   reservationId: number;
 
-  @Column()
-  name: string;
-
   @Column({
     type: 'enum',
     enum: PaymentMethod,
