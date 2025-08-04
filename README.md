@@ -1,81 +1,112 @@
-# 🎟️ Ticketing System
+# 🏷️ 티켓 예매 시스템
 
-## 🧾 0. 개요
+<img src="./ticketing-backend/img.png" alt="스크린샷" style="width: 70%;"/>
 
-> **목표**: 고성능의 티켓팅 시스템을 설계하고 구현하여 실시간 대규모 트래픽을 안정적으로 처리하는 구조 경험하기  
-> **활용 기술**: NestJS, Kafka, Redis, Docker, MySQL, Kubernetes, AWS
+> 실시간 대규모 트래픽 속에서도 안정적인 **티켓 예매 시스템**을 직접 설계하고 구현한 프로젝트입니다. Kafka, Redis, NestJS 기반의 **이벤트 스트리밍 / 대기열 / 분산 트랜잭션** 등의 복합 기술을 다루며, Artillery를 사용해 실제와 유사한 조건에서의 **성능 테스트**까지 마쳤습니다.
 
-👉 상세 설명: [티켓팅 시스템 개요](https://sihanni.tistory.com/166)
+## 개요
+
+> **목표**: 실시간 대규모 트래픽 처리가 가능한 환경과 안정적인 티켓 예매 시스템을 구현하고, 성능 병목 요소를 직접 설계하고 테스트 한다.
+
+> **활용 기술**: NestJS, Kafka, Redis, Docker, MySQL
+
+👉 상세 설명: [티켓팅 시스템 개요](https://sihanni.tistory.com/167)
 
 ---
 
-## 🧩 1. 시스템 설계
+## 💬 1. 시스템 설계
 
 ### 아키텍처 구성
 
-- **Frontend**: React 기반 예약 페이지
+```
+[User]
+   │
+ ┌▼──────────────┐
+ │ React Client  │
+ └▲────┬─────────┘
+       │ WebSocket
+  ┌────┴──────────────┐
+  │ WebSocket Service │ ◀─ Redis ZSET 기반 대기열 처리
+  └────┬──────────────┘
+       │ Kafka (Active 입장 대상)
+ ┌─────▼────────┐           Kafka          ┌──────────────┐
+ │ Reservation  │ ───────────────────────▶ │ Payment      │
+ │ Service      │ ◀─────────────────────── │ Service      │
+ └─────┬────────┘         reservation.*    └──────────────┘
+       │                                        │
+   MySQL (예약)                             MySQL (결제)
+
+```
+
 - **Backend (Monorepo)**:
+  - NestJS 기반 MSA 아키텍처로 설계됨
+  - 서비스마다 독립된 역할, 컨트롤러/서비스/DB 구조, Kafka 메시지로 비동기 통신
+  - 단, 실제로는 이 모든 서비스가 하나의 Git 저장소(monorepo) 안에 존재함서비스를 나눔
   - `user-service`: 회원 가입 / 로그인
-  - `ticket-service`: 공연 티켓 생성 / 상세 조회
-  - `reservation-service`: 티켓 예약 및 취소 로직
+  - `event-service`: 공연,이벤트 등록 / 조회
+  - `seat-service`: 공연장 등록 / 공연장 별 좌석 생성 / 상세 조회
+  - `reservation-service`: 티켓 예약, 만료 처리 등 핵심 서비스
+  - `payment-service`: 결제 서버
+  - `websocket-service`: 대기열 서버
 - **Infra 구성 요소**:
-  - **Redis**: 대기열 관리 및 세션 관리
-  - **Kafka**: 예약 이벤트 비동기 처리
+  - **Redis**: 대기열 관리 및 세션 관리, lua-scripts를 활용한 좌석 선점 락 처리, 예약 상태 관리 등
+  - **Kafka**: 예약 이벤트 비동기 처리, 서버간 메시지 브로커
   - **MySQL**: 정형화된 데이터 저장 (RDS)
-  - **Kubernetes**: MSA 환경 배포
-  - **AWS**: 전체 클라우드 인프라 구성
 
-👉 상세 설명: [티켓팅 시스템 설계](https://sihanni.tistory.com/167)
+## 🚦 2. 대기열 시스템
 
----
+> 실시간 대기열 시스템은 \*\*가장 많은 시간과 고민을 했던 부분입니다.
 
-## 🗃️ 2. DB 설계
+- Redis `ZSET`을 활용해 유저의 순번을 관리
+- WebSocket 접속 시 큐 등록 → 순번 실시간 전송
+- TPS Worker가 Redis 기준으로 입장 대상 추출
+- 입장 허용 시 `reservation-service`만 접근 허용
+- TTL 만료 시 자리 반환 및 다음 유저 입장 처리
 
-### 주요 테이블
-
-- `users` (회원)
-- `tickets` (공연 티켓)
-- `reservations` (예약 내역)
-- `reservation_logs` (예약 시도 로그)
-- `admins` (관리자 - 티켓 등록 가능)
-
-### 설계 고려사항
-
-- 정합성 보장을 위한 트랜잭션 처리
-- 동시성 제어를 위한 **락(lock)** 기반 예약 처리
-- 예약 시 `status` 플래그를 통한 상태 관리
-- 인덱스를 활용한 고속 조회 (특히 `tickets`, `reservations`)
-
-👉 상세 설명: [DB 스키마 설계](https://sihanni.tistory.com/168)
+📌 TPS 제어 / 동시성 관리 / 메시지 발행 흐름까지 모두 포함된 **대기열 구조**
 
 ---
 
-## 📌 기술 요약
+## 🧪 테스트 시나리오 및 결과
 
-| 기술 스택        | 내용                                               |
-| ---------------- | -------------------------------------------------- |
-| **Backend**      | NestJS, TypeScript, Kafka, Redis, MySQL            |
-| **Infra**        | Docker, Kubernetes, AWS (ECS, RDS, ECR, ALB)       |
-| **DevOps**       | GitHub Actions, E2E 테스트, Unit 테스트            |
-| **Database**     | 정규화, 트랜잭션, 인덱싱 전략 설계                 |
-| **Architecture** | Kafka 기반 이벤트 기반 아키텍처, Redis 대기열 관리 |
+### 1. Artillery를 통한 부하 테스트
 
----
+- 1000석의 공연장에 1~2분 간 최대 5000, 10000명 이상 동시 접속 테스트
+- TPS 제한: 초당 200명 입장 허용
+- TTL 만료 시 좌석 회수 및 재입장 처리 정상 동작
 
-## ✅ 목표
+### 2. Kafka 메시지 흐름 테스트
 
-- 대기열 시스템 구현 (Redis)
-- 동시 예약 처리 로직 (트랜잭션 & 락)
-- Kafka 기반 MSA 설계
-- 실제 클라우드 환경에서의 무중단 배포 경험
-- 실시간 부하 테스트 (Artillery, k6 등)
+- 예약 요청 시 `reservation.requested` 메시지 발행
+- `payment-service`에서 처리 후 `reservation.paid` 발행
+- `reservation-service`에서 최종 Confirmed 처리
 
 ---
 
-## 📚 참고
+## ✅ 성과
 
-- [티켓팅 시스템 개요](https://sihanni.tistory.com/166)
-- [티켓팅 시스템 설계](https://sihanni.tistory.com/167)
-- [DB 설계 정리](https://sihanni.tistory.com/168)
+- ✅ Kafka 기반 MSA 구성 및 메시지 흐름 설계
+- ✅ Redis TTL / ZSET / 분산락 기능 활용
+- ✅ TPS 기반 입장 제어 및 실시간 대기열 UI 연동
+- ✅ 로컬 서버에서 5만 명 유저 / 1000석 공연 동시 예약 기준 부하 테스트
+- ✅ Artillery TPS 측정, RPS 분석, 병목 구간 추적
+- ✅ NestJS 기반 각 서비스 모듈 분리 및 Swagger 문서화
+- ✅ pnpm workspace + Docker + .env 구성
+
+---
+
+## ✨기술 블로그 정리 글
+
+☁️ DB 설계: [티켓팅 시스템 DB 설계](https://sihanni.tistory.com/168)
+
+🌨️ 백엔드 설계 및 작업: [티켓팅 시스템 DB 설계](https://sihanni.tistory.com/168)
+
+🌦️ 테스트 : [테스트 1](https://sihanni.tistory.com/177)
+
+⛈️ 대기열 도입 : [대기열](https://sihanni.tistory.com/179)
+
+🌪️ 통합 테스트 1 : [통합 테스트1](https://sihanni.tistory.com/180)
+
+🌈 개선 작업과 최종 테스트 : [통합 테스트 및 개선](https://sihanni.tistory.com/181)
 
 ---
