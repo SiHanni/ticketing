@@ -89,7 +89,7 @@ export class ReservationService {
         RESERVATION_TTL_SECONDS,
       );
 
-      // 예약 성공 시 tps worker에서 작업된 user:status 제거 → 재예약 방지
+      // 예약 성공 시 활성화 대기열에서 제거 → 재예약 방지
       await this.redis.del(`user:${eventId}:${userId}:status`);
 
       // 카프카 이벤트 발행

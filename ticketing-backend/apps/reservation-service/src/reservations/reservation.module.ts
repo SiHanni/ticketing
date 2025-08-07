@@ -4,7 +4,7 @@ import { Reservation } from './reservation.entity';
 import { ReservationService } from './reservation.service';
 import { ReservationController } from './reservation.controller';
 import { ReservationConsumerController } from './reservation-consumer.controller';
-import { KafkaModule } from '@libs/kafka';
+import { KafkaModule, KafkaRetryService } from '@libs/kafka';
 import { ReservationExpirationListener } from './reservation-expiration.listener';
 import { SeatLockService } from './lock/seat-lock.service';
 import { RedisModule } from '@libs/redis';
@@ -16,6 +16,7 @@ import { RedisModule } from '@libs/redis';
     ReservationService,
     ReservationExpirationListener,
     SeatLockService,
+    KafkaRetryService,
   ],
 })
 export class ReservationModule {}

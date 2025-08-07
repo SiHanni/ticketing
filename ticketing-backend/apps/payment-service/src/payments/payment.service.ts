@@ -1,8 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Payment, PaymentMethod } from './payment.entity';
 import { Repository } from 'typeorm';
-import { CreatePaymentDto } from '../dto/create-payment.dto';
 import { KafkaService } from '@libs/kafka';
 
 @Injectable()
@@ -21,23 +24,29 @@ export class PaymentService {
     this.logger.log(
       `자동 결제 처리: userId=${userId}, reservationId=${reservationId}`,
     );
+    try {
+      const payment = this.paymentRepository.create({
+        userId,
+        reservationId,
+        paymentMethod: PaymentMethod.CARD, // 기본 카드 결제
+        paidAt: new Date(),
+      });
 
-    const payment = this.paymentRepository.create({
-      userId,
-      reservationId,
-      paymentMethod: PaymentMethod.CARD, // 기본 카드 결제
-      paidAt: new Date(),
-    });
+      const saved = await this.paymentRepository.save(payment);
 
-    const saved = await this.paymentRepository.save(payment);
+      await this.kafkaService.produce('reservation.paid', {
+        reservationId: saved.reservationId,
+        userId: saved.userId,
+        paymentId: saved.id,
+        paidAt: saved.paidAt,
+      });
 
-    await this.kafkaService.produce('reservation.paid', {
-      reservationId: saved.reservationId,
-      userId: saved.userId,
-      paymentId: saved.id,
-      paidAt: saved.paidAt,
-    });
-
-    return saved;
+      return saved;
+    } catch (error) {
+      this.logger.error(
+        `결제 실패: userId=${userId}, reservationId=${reservationId}`,
+      );
+      throw new InternalServerErrorException();
+    }
   }
 }

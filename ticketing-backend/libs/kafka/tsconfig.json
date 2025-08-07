@@ -1,9 +1,19 @@
+//{
+//  "extends": "../../tsconfig.base.json",
+//  "compilerOptions": {
+//    "baseUrl": "./src",
+//    "paths": {
+//      "@libs/kafka": ["."]
+//    }
+//  }
+//}
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": "./src",
+    "baseUrl": ".",
     "paths": {
-      "@libs/kafka": ["."]
+      "@libs/kafka": ["src"],
+      "@libs/redis": ["../redis/src"]
     }
   }
 }

@@ -4,7 +4,7 @@ import { Redis } from 'ioredis';
 import { randomUUID } from 'crypto';
 import { SEAT_LOCK_PREFIX } from '../constants';
 
-const SEAT_LOCK_EXPIRE_SECONDS = 180;
+const SEAT_LOCK_EXPIRE_SECONDS = 300;
 
 @Injectable()
 export class SeatLockService {
@@ -33,7 +33,7 @@ export class SeatLockService {
         lockId,
         ttl,
       );
-      this.logger.debug(`🔍 tryLock result:`, result); // 이거 추가!!
+      this.logger.debug(`🔍 tryLock result:`, result);
 
       if (result) {
         this.logger.log(
@@ -63,7 +63,7 @@ export class SeatLockService {
         `${SEAT_LOCK_PREFIX}:${lockKey}`,
         lockId,
       );
-      console.log('RERE', result);
+
       return result === 1;
     } catch (err) {
       this.logger.error(`🚨 락 해제 실패: ${err}`);

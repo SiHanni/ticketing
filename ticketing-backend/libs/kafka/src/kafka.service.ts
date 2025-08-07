@@ -30,4 +30,21 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
       messages: [{ value: JSON.stringify(payload) }],
     });
   }
+
+  // 재처리
+  async produceWithHeaders(
+    topic: string,
+    payload: Record<string, any>,
+    headers: Record<string, any>,
+  ) {
+    await this.producer.send({
+      topic,
+      messages: [
+        {
+          value: JSON.stringify(payload),
+          headers,
+        },
+      ],
+    });
+  }
 }

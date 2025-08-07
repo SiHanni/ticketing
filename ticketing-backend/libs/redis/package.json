@@ -1,8 +1,7 @@
 {
   "name": "@libs/redis",
   "version": "1.0.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/libs/redis",
   "scripts": {
     "build": "tsc -p tsconfig.build.json"
   }
