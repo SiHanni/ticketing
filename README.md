@@ -35,6 +35,37 @@
  └─────┬────────┘         reservation.*    └──────────────┘
        │                                        │
    MySQL (예약)                             MySQL (결제)
+       │                                        │
+       │                                        │
+       ▼                                        ▼
+┌──────────────────────────┐        ┌──────────────────────────┐
+│ KafkaRetryService        │        │ KafkaRetryService        │
+│ (retryOrDlq 호출)         │        │ (retryOrDlq 호출)         │ 
+└────────────┬─────────────┘        └────────────┬─────────────┘
+             │                                     │
+             ▼                                     ▼
+  retry.reservation.paid.(n)           retry.reservation.requested.(n)
+             │                                     │
+             └────────────┬──────────────┬────────┘
+                          ▼              ▼
+                ┌─────────────────────────────┐
+                │ RetryConsumerController     │  Kafka Consumer
+                │ - 원래 토픽 추출               │
+                │ - delay 계산                 │
+                └────────────┬────────────────┘
+                             ▼
+                    Redis ZSET (지연 큐)
+                             │
+                             ▼
+                ┌────────────────────────────┐
+                │ RetryWorker (1초 주기 Poll)  │
+                │ - zrangebyscore            │
+                │ - Kafka 재전송               │
+                └────────────┬───────────────┘
+                             ▼
+                      Kafka originalTopic
+              (reservation.requested / paid)
+
 
 ```
 
