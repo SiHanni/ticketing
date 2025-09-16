@@ -219,4 +219,10 @@ export class ReservationService {
 
     return reservation;
   }
+
+  async getConfirmedCount(eventId: number) {
+    return this.reservationRepository.count({
+      where: { eventId, status: ReservationStatus.Confirmed },
+    });
+  }
 }

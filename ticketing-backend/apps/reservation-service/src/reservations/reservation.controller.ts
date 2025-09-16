@@ -1,4 +1,13 @@
-import { Controller, Post, Body, UseGuards, Get, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Param,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { ReservationService } from './reservation.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -22,5 +31,11 @@ export class ReservationController {
   @ApiResponse({ status: 200, description: '예약 상태 반환' })
   async getReservation(@Param('id') id: number) {
     return this.reservationService.getReservationStatus(id);
+  }
+
+  @Get('metrics/confirmed-count')
+  async getConfirmedCount(@Query('eventId', ParseIntPipe) eventId: number) {
+    const count = await this.reservationService.getConfirmedCount(eventId);
+    return { count };
   }
 }

@@ -1,6 +1,6 @@
 import { createClient } from 'redis';
 
-const redis = createClient({ url: 'redis://localhost:6379' });
+const redis = createClient({ url: 'redis://localhost:16380' });
 
 const EVENT_ID = '6'; // 테스트할 공연 ID
 const QUEUE_KEY = `queue:reservation:${EVENT_ID}`;

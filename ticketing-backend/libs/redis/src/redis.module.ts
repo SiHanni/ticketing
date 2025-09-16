@@ -7,7 +7,7 @@ import { RedisService } from './redis.service';
   imports: [
     IORedisModule.forRoot({
       type: 'single',
-      url: 'redis://localhost:6379',
+      url: 'redis://localhost:16380',
     }),
   ],
   providers: [RedisService],

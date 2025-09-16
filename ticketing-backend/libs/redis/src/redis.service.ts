@@ -7,7 +7,7 @@ export class RedisService implements OnModuleInit {
 
   async onModuleInit() {
     if (!this.client) {
-      this.client = createClient({ url: 'redis://localhost:6379' });
+      this.client = createClient({ url: 'redis://localhost:16380' });
       this.client.on('error', (err) => console.error('Redis Error:', err));
       await this.client.connect();
       console.log('✅ Redis connected');

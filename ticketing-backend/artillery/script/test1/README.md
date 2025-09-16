@@ -81,10 +81,11 @@
    ts-node script/test1/generate-payload.ts
    ```
 
-2. 부하 테스트 실행
+2. 부하 테스트 실행 (cd artillery/script/test1에서 실행)
 
    ```
-   NODE_OPTIONS='-r ts-node/register' artillery run script/test1/artillery.yml
+   NODE_OPTIONS='-r ts-node/register' \
+   npx artillery run artillery.yml --output ../../result.json
 
    ```
 
