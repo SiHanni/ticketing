@@ -5,18 +5,15 @@ import axios, { AxiosError } from 'axios';
 const WS_URL = process.env.WS_URL || 'ws://localhost:3006';
 const API_BASE = process.env.API_BASE || 'http://localhost:3002';
 
-// ---- 시나리오 파라미터 (필요 시 yml/env로 조정 가능)
-const QUEUE_TIMEOUT_MS = Number(process.env.QUEUE_TIMEOUT_MS || 180000); // active 기다리는 최대시간
-const CONFIRM_TIMEOUT_MS = Number(process.env.CONFIRM_TIMEOUT_MS || 20000); // 예약 후 Confirm 대기
+const QUEUE_TIMEOUT_MS = Number(process.env.QUEUE_TIMEOUT_MS || 180000);
+const CONFIRM_TIMEOUT_MS = Number(process.env.CONFIRM_TIMEOUT_MS || 20000);
 const HARD_SCENARIO_TIMEOUT_MS = Number(
   process.env.HARD_SCENARIO_TIMEOUT_MS || 210000,
 ); // VU 강제 종료 상한
 const CONFIRM_POLL_INTERVAL_MS = 1000;
 
-// ---- 목표 좌석/이벤트 (payload에 eventId가 들어오되, 시각화 종료를 위해 타깃 좌석 수를 알아야 함)
 const TARGET_SEATS = Number(process.env.TARGET_SEATS || 1000);
 
-// ---- 전역 상태(동일 프로세스 내에서 공유; 아티러리 멀티 워커가 아니라면 안정적)
 const globalState = {
   startedPolling: false,
   stopFlag: false,
@@ -24,10 +21,7 @@ const globalState = {
 };
 
 // API: 이벤트별 Confirmed 개수 조회용 엔드포인트
-// *가장 권장*: /metrics/reservations/confirmed-count?eventId=6 같은 API를 이벤트 서버/예약 서버에 노출
 async function fetchConfirmedCount(eventId: number): Promise<number> {
-  // 1) 권장 엔드포인트 (있다면 이걸 사용)
-  // GET /metrics/reservations/confirmed-count?eventId=6 -> { count: number }
   try {
     const r = await axios.get(
       `${API_BASE}/metrics/reservations/confirmed-count`,
@@ -37,19 +31,8 @@ async function fetchConfirmedCount(eventId: number): Promise<number> {
       },
     );
     return Number(r.data?.count ?? 0);
-  } catch {
-    // 2) 대안: 예약 집계 엔드포인트(있을 때)
-    // GET /reservations/summary?eventId=6 -> { confirmed: number, ... }
-    try {
-      const r2 = await axios.get(`${API_BASE}/reservations/summary`, {
-        params: { eventId },
-        timeout: 3000,
-      });
-      return Number(r2.data?.confirmed ?? 0);
-    } catch {
-      // 3) 최후의 수단: 0 리턴(폴러가 다시 시도)
-      return 0;
-    }
+  } catch (error) {
+    return 0;
   }
 }
 
