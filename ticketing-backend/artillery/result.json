@@ -1,0 +1,166 @@
+{
+  "aggregate": {
+    "counters": {
+      "vusers.created_by_name.🎟️ 티켓팅 Full Cycle 테스트": 5000,
+      "vusers.created": 5000,
+      "vusers.failed": 0,
+      "vusers.completed": 5000
+    },
+    "rates": {},
+    "firstCounterAt": 1758071938779,
+    "firstHistogramAt": 1758072118803,
+    "lastCounterAt": 1758072121484,
+    "lastHistogramAt": 1758072121484,
+    "firstMetricAt": 1758071938779,
+    "lastMetricAt": 1758072121484,
+    "period": 1758072120000,
+    "summaries": {
+      "vusers.session_length": {
+        "min": 179999.8,
+        "max": 180111.9,
+        "count": 5000,
+        "mean": 180002.4,
+        "p50": 181743.9,
+        "median": 181743.9,
+        "p75": 181743.9,
+        "p90": 181743.9,
+        "p95": 181743.9,
+        "p99": 181743.9,
+        "p999": 181743.9
+      }
+    },
+    "histograms": {
+      "vusers.session_length": {
+        "min": 179999.8,
+        "max": 180111.9,
+        "count": 5000,
+        "mean": 180002.4,
+        "p50": 181743.9,
+        "median": 181743.9,
+        "p75": 181743.9,
+        "p90": 181743.9,
+        "p95": 181743.9,
+        "p99": 181743.9,
+        "p999": 181743.9
+      }
+    }
+  },
+  "intermediate": [
+    {
+      "counters": {
+        "vusers.created_by_name.🎟️ 티켓팅 Full Cycle 테스트": 1386,
+        "vusers.created": 1386
+      },
+      "rates": {},
+      "firstCounterAt": 1758071938779,
+      "lastCounterAt": 1758071939999,
+      "firstMetricAt": 1758071938779,
+      "lastMetricAt": 1758071939999,
+      "period": "1758071930000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.created_by_name.🎟️ 티켓팅 Full Cycle 테스트": 3614,
+        "vusers.created": 3614
+      },
+      "rates": {},
+      "firstCounterAt": 1758071940000,
+      "lastCounterAt": 1758071941482,
+      "firstMetricAt": 1758071940000,
+      "lastMetricAt": 1758071941482,
+      "period": "1758071940000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.failed": 0,
+        "vusers.completed": 1383
+      },
+      "rates": {},
+      "firstCounterAt": 1758072118803,
+      "firstHistogramAt": 1758072118803,
+      "lastCounterAt": 1758072119999,
+      "lastHistogramAt": 1758072119999,
+      "firstMetricAt": 1758072118803,
+      "lastMetricAt": 1758072119999,
+      "period": "1758072110000",
+      "summaries": {
+        "vusers.session_length": {
+          "min": 179999.8,
+          "max": 180111.9,
+          "count": 1383,
+          "mean": 180004.4,
+          "p50": 181743.9,
+          "median": 181743.9,
+          "p75": 181743.9,
+          "p90": 181743.9,
+          "p95": 181743.9,
+          "p99": 181743.9,
+          "p999": 181743.9
+        }
+      },
+      "histograms": {
+        "vusers.session_length": {
+          "min": 179999.8,
+          "max": 180111.9,
+          "count": 1383,
+          "mean": 180004.4,
+          "p50": 181743.9,
+          "median": 181743.9,
+          "p75": 181743.9,
+          "p90": 181743.9,
+          "p95": 181743.9,
+          "p99": 181743.9,
+          "p999": 181743.9
+        }
+      }
+    },
+    {
+      "counters": {
+        "vusers.failed": 0,
+        "vusers.completed": 3617
+      },
+      "rates": {},
+      "firstCounterAt": 1758072120000,
+      "firstHistogramAt": 1758072120000,
+      "lastCounterAt": 1758072121484,
+      "lastHistogramAt": 1758072121484,
+      "firstMetricAt": 1758072120000,
+      "lastMetricAt": 1758072121484,
+      "period": "1758072120000",
+      "summaries": {
+        "vusers.session_length": {
+          "min": 179999.8,
+          "max": 180038.3,
+          "count": 3617,
+          "mean": 180001.6,
+          "p50": 181743.9,
+          "median": 181743.9,
+          "p75": 181743.9,
+          "p90": 181743.9,
+          "p95": 181743.9,
+          "p99": 181743.9,
+          "p999": 181743.9
+        }
+      },
+      "histograms": {
+        "vusers.session_length": {
+          "min": 179999.8,
+          "max": 180038.3,
+          "count": 3617,
+          "mean": 180001.6,
+          "p50": 181743.9,
+          "median": 181743.9,
+          "p75": 181743.9,
+          "p90": 181743.9,
+          "p95": 181743.9,
+          "p99": 181743.9,
+          "p999": 181743.9
+        }
+      }
+    }
+  ]
+}
